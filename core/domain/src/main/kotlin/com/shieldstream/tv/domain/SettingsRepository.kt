@@ -11,6 +11,10 @@ interface SettingsRepository {
     val token: Flow<String?>
     suspend fun setToken(token: String?)
 
+    /** URL de un servidor propio (debrid-proxy) que guarda la clave y hace de relay. Nula = usar Real-Debrid directo. */
+    val serverUrl: Flow<String?>
+    suspend fun setServerUrl(url: String?)
+
     val catalogProvider: Flow<CatalogProvider>
     suspend fun setCatalogProvider(provider: CatalogProvider)
 

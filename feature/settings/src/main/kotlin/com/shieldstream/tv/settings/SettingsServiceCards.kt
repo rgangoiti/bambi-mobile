@@ -269,12 +269,13 @@ internal fun DebridSelectorCard(active: DebridService, onChange: (DebridService)
 @Composable
 internal fun KeyEditorDialog(
     editor: KeyEditor,
-    onSave: (String) -> Unit,
+    onSave: (String, String?) -> Unit,
     onRemove: () -> Unit,
     onClose: () -> Unit,
     onAllDebridConnected: () -> Unit,
 ) {
     var input by rememberSaveable(editor.service) { mutableStateOf("") }
+    var serverUrl by rememberSaveable(editor.service) { mutableStateOf(editor.serverUrl.orEmpty()) }
     val fieldRequester = remember { FocusRequester() }
     val saveRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
@@ -344,7 +345,7 @@ internal fun KeyEditorDialog(
                 ),
                 keyboardActions = KeyboardActions(onDone = {
                     keyboard?.hide()
-                    onSave(input)
+                    onSave(input, serverUrl)
                 }),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -386,6 +387,41 @@ internal fun KeyEditorDialog(
                     }
                 },
             )
+            if (editor.service == ApiService.REAL_DEBRID) {
+                Spacer(Modifier.height(16.dp))
+                BasicTextField(
+                    value = serverUrl,
+                    onValueChange = { serverUrl = it.replace("\n", "") },
+                    singleLine = true,
+                    enabled = !editor.busy,
+                    textStyle = TextStyle(color = Color.White, fontSize = 16.sp, fontFamily = FontFamily.Monospace),
+                    cursorBrush = SolidColor(Color.White),
+                    keyboardOptions = KeyboardOptions(
+                        autoCorrectEnabled = false,
+                        keyboardType = KeyboardType.Uri,
+                        imeAction = ImeAction.Next,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    decorationBox = { field ->
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFF101119), RoundedCornerShape(10.dp))
+                                .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
+                                .padding(horizontal = 18.dp, vertical = 16.dp),
+                        ) {
+                            if (serverUrl.isEmpty()) {
+                                Text(
+                                    "Servidor propio (URL, opcional) — ej. http://192.168.1.215:8201",
+                                    fontSize = 16.sp,
+                                    color = Color.White.copy(alpha = 0.35f),
+                                )
+                            }
+                            field()
+                        }
+                    },
+                )
+            }
             Spacer(Modifier.height(12.dp))
             Text(
                 text = when {
@@ -404,7 +440,7 @@ internal fun KeyEditorDialog(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TvButton(
                     text = localizedStringResource(StringsR.string.settings_check_and_save),
-                    onClick = { onSave(input) },
+                    onClick = { onSave(input, serverUrl) },
                     enabled = !editor.busy,
                     modifier = Modifier.focusRequester(saveRequester),
                 )

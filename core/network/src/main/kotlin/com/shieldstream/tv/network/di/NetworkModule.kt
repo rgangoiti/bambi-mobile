@@ -1,5 +1,6 @@
 package com.shieldstream.tv.network.di
 
+import com.shieldstream.tv.domain.SettingsRepository
 import com.shieldstream.tv.model.Lang
 import com.shieldstream.tv.network.api.AllDebridApi
 import com.shieldstream.tv.network.api.RealDebridApi
@@ -13,6 +14,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -65,8 +68,16 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideRealDebridApi(client: OkHttpClient, json: Json): RealDebridApi =
-        buildRetrofit(ApiConfig.REAL_DEBRID_BASE_URL, client, json).create(RealDebridApi::class.java)
+    fun provideRealDebridApi(client: OkHttpClient, json: Json, settings: SettingsRepository): RealDebridApi {
+        // Si el usuario ha configurado un servidor propio (debrid-proxy), la API de Real-Debrid apunta a él:
+        // el servidor guarda la clave e inyecta el token, así el móvil no la lleva.
+        val baseUrl = runBlocking { settings.serverUrl.first() }
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { if (it.endsWith("/")) it else "$it/" }
+            ?: ApiConfig.REAL_DEBRID_BASE_URL
+        return buildRetrofit(baseUrl, client, json).create(RealDebridApi::class.java)
+    }
 
     @Provides
     @Singleton

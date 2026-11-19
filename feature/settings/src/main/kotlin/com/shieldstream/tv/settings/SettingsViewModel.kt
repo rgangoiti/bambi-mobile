@@ -56,6 +56,8 @@ data class KeyEditor(
     val hasKey: Boolean,
     val busy: Boolean = false,
     val error: String? = null,
+    /** URL de un servidor propio (debrid-proxy); solo relevante para Real-Debrid. Nula = modo directo. */
+    val serverUrl: String? = null,
 )
 
 private data class PlaybackSettings(
@@ -96,6 +98,10 @@ class SettingsViewModel @Inject constructor(
 
     private val statuses = MutableStateFlow<Map<ApiService, ServiceStatus>>(emptyMap())
     private val editor = MutableStateFlow<KeyEditor?>(null)
+
+    /** URL del servidor propio (debrid-proxy); se muestra en el editor de Real-Debrid. */
+    val serverUrl: StateFlow<String?> =
+        settings.serverUrl.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val playback = combine(
         settings.maxBufferSeconds,
@@ -278,22 +284,44 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun openEditor(service: ApiService) {
-        editor.value = KeyEditor(service, hasKey = !apiKeys.keys.value[service].isNullOrBlank())
+        editor.value = KeyEditor(
+            service = service,
+            hasKey = !apiKeys.keys.value[service].isNullOrBlank(),
+            serverUrl = serverUrl.value,
+        )
     }
 
     fun closeEditor() {
         if (editor.value?.busy != true) editor.value = null
     }
 
-    fun saveKey(input: String) {
+    fun saveKey(input: String, serverUrl: String? = null) {
         val current = editor.value ?: return
         val key = input.trim()
+        val server = serverUrl?.trim().orEmpty()
+
+        // Modo servidor propio: la clave vive en el servidor, no se valida contra RD aquí.
+        if (server.isNotEmpty()) {
+            editor.value = current.copy(busy = true, error = null)
+            viewModelScope.launch {
+                settings.setServerUrl(server)
+                if (key.isNotEmpty()) {
+                    apiKeys.set(current.service, key)
+                    statuses.update { it + (current.service to ServiceStatus.Ok(null)) }
+                }
+                editor.value = null
+            }
+            return
+        }
+
+        // Modo directo: la clave es obligatoria y se valida.
         if (key.isEmpty()) {
             editor.value = current.copy(error = texts.get(StringsR.string.settings_type_the_key_first))
             return
         }
         editor.value = current.copy(busy = true, error = null)
         viewModelScope.launch {
+            settings.setServerUrl(null)
             when (val result = apiKeys.check(current.service, key)) {
                 is KeyCheck.Valid -> {
                     apiKeys.set(current.service, key)

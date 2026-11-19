@@ -37,6 +37,7 @@ class SettingsRepositoryImpl @Inject constructor(
     private val prefs = context.getSharedPreferences(AppLanguage.PREFS, Context.MODE_PRIVATE)
 
     private val tokenFlow = MutableStateFlow(tokenStore.token)
+    private val serverUrlFlow = MutableStateFlow(prefs.getString(KEY_SERVER_URL, null))
     private val catalogProviderFlow = MutableStateFlow(
         runCatching { CatalogProvider.valueOf(prefs.getString(KEY_PROVIDER, null) ?: "") }
             .getOrDefault(CatalogProvider.COMBINED),
@@ -305,6 +306,7 @@ class SettingsRepositoryImpl @Inject constructor(
     }
 
     override val token: Flow<String?> = tokenFlow
+    override val serverUrl: Flow<String?> = serverUrlFlow
     override val catalogProvider: Flow<CatalogProvider> = catalogProviderFlow
     override val deviceOptimization: Flow<DeviceOptimization> = deviceOptimizationFlow
     override val maxBufferSeconds: Flow<Int> = maxBufferFlow
@@ -323,6 +325,11 @@ class SettingsRepositoryImpl @Inject constructor(
     override suspend fun setToken(token: String?) {
         tokenStore.token = token
         tokenFlow.value = token
+    }
+
+    override suspend fun setServerUrl(url: String?) {
+        prefs.edit().putString(KEY_SERVER_URL, url).apply()
+        serverUrlFlow.value = url
     }
 
     override suspend fun setCatalogProvider(provider: CatalogProvider) {
@@ -354,6 +361,7 @@ class SettingsRepositoryImpl @Inject constructor(
         const val KEY_PREFERRED_QUALITY = "preferred_quality"
         const val KEY_HOME_ROW_ITEM_LIMIT = "home_row_item_limit"
         const val KEY_DEBRID = "debrid_service"
+        const val KEY_SERVER_URL = "debrid_server_url"
         const val KEY_PROVIDERS_OFF = "source_providers_off"
         const val KEY_EXCLUDED_QUALITIES = "source_excluded_qualities"
         const val KEY_EXCLUDED_HDR_TYPES = "source_excluded_hdr_types"
