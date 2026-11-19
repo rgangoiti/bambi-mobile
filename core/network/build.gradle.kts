@@ -25,6 +25,7 @@ android {
 
 dependencies {
     implementation(project(":core:model"))
+    implementation(project(":core:domain"))
 
     api(libs.retrofit) // api: RealDebridApi expone retrofit2.Response a :core:data
     implementation(libs.retrofit.kotlinx.serialization)
