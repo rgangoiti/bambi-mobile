@@ -269,13 +269,14 @@ internal fun DebridSelectorCard(active: DebridService, onChange: (DebridService)
 @Composable
 internal fun KeyEditorDialog(
     editor: KeyEditor,
-    onSave: (String, String?) -> Unit,
+    onSave: (String, String?, String?) -> Unit,
     onRemove: () -> Unit,
     onClose: () -> Unit,
     onAllDebridConnected: () -> Unit,
 ) {
     var input by rememberSaveable(editor.service) { mutableStateOf("") }
     var serverUrl by rememberSaveable(editor.service) { mutableStateOf(editor.serverUrl.orEmpty()) }
+    var adminPassword by rememberSaveable(editor.service) { mutableStateOf("") }
     val fieldRequester = remember { FocusRequester() }
     val saveRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
@@ -345,7 +346,7 @@ internal fun KeyEditorDialog(
                 ),
                 keyboardActions = KeyboardActions(onDone = {
                     keyboard?.hide()
-                    onSave(input, serverUrl)
+                    onSave(input, serverUrl, adminPassword)
                 }),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -421,6 +422,41 @@ internal fun KeyEditorDialog(
                         }
                     },
                 )
+                if (serverUrl.isNotEmpty()) {
+                    Spacer(Modifier.height(12.dp))
+                    BasicTextField(
+                        value = adminPassword,
+                        onValueChange = { adminPassword = it.replace("\n", "") },
+                        singleLine = true,
+                        enabled = !editor.busy,
+                        textStyle = TextStyle(color = Color.White, fontSize = 16.sp, fontFamily = FontFamily.Monospace),
+                        cursorBrush = SolidColor(Color.White),
+                        keyboardOptions = KeyboardOptions(
+                            autoCorrectEnabled = false,
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done,
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        decorationBox = { field ->
+                            Box(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFF101119), RoundedCornerShape(10.dp))
+                                    .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
+                                    .padding(horizontal = 18.dp, vertical = 16.dp),
+                            ) {
+                                if (adminPassword.isEmpty()) {
+                                    Text(
+                                        "Contraseña admin (para guardar la clave en el servidor)",
+                                        fontSize = 16.sp,
+                                        color = Color.White.copy(alpha = 0.35f),
+                                    )
+                                }
+                                field()
+                            }
+                        },
+                    )
+                }
             }
             Spacer(Modifier.height(12.dp))
             Text(
@@ -440,7 +476,7 @@ internal fun KeyEditorDialog(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TvButton(
                     text = localizedStringResource(StringsR.string.settings_check_and_save),
-                    onClick = { onSave(input, serverUrl) },
+                    onClick = { onSave(input, serverUrl, adminPassword) },
                     enabled = !editor.busy,
                     modifier = Modifier.focusRequester(saveRequester),
                 )

@@ -27,7 +27,9 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.Request
 import java.io.IOException
+import java.net.HttpURLConnection
 import java.net.URI
+import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -54,6 +56,28 @@ class ApiKeysRepositoryImpl @Inject constructor(
         val clean = value?.trim()?.takeIf { it.isNotEmpty() }
         if (service == ApiService.REAL_DEBRID) settings.setToken(clean) else store.setSecret(service.storeKey, clean)
         _keys.value = read()
+    }
+
+    override suspend fun pushKeyToServer(service: ApiService, key: String, adminPassword: String): Boolean {
+        val server = settings.serverUrl.first()?.trim()?.trimEnd('/') ?: return false
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                val conn = URL("$server/admin/key").openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json")
+                if (adminPassword.isNotBlank()) conn.setRequestProperty("X-Admin-Password", adminPassword)
+                conn.doOutput = true
+                conn.connectTimeout = 10_000
+                conn.readTimeout = 10_000
+                val body = if (service == ApiService.ALLDEBRID) {
+                    """{"ad_token":"${key.trim()}"}"""
+                } else {
+                    """{"token":"${key.trim()}"}"""
+                }
+                conn.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+                conn.responseCode in 200..299
+            }.getOrDefault(false)
+        }
     }
 
     override suspend fun check(service: ApiService, value: String): KeyCheck = withContext(Dispatchers.IO) {

@@ -64,4 +64,7 @@ interface ApiKeysRepository {
     suspend fun check(service: ApiService, value: String): KeyCheck
 
     suspend fun addonMetadata(manifestUrl: String): StremioAddonMetadata? = null
+
+    /** Envía la clave al servidor propio (debrid-proxy) para que la guarde/actualice. Devuelve true si el servidor la aceptó. */
+    suspend fun pushKeyToServer(service: ApiService, key: String, adminPassword: String): Boolean = false
 }

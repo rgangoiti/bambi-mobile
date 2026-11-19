@@ -295,18 +295,27 @@ class SettingsViewModel @Inject constructor(
         if (editor.value?.busy != true) editor.value = null
     }
 
-    fun saveKey(input: String, serverUrl: String? = null) {
+    fun saveKey(input: String, serverUrl: String? = null, adminPassword: String? = null) {
         val current = editor.value ?: return
         val key = input.trim()
         val server = serverUrl?.trim().orEmpty()
 
-        // Modo servidor propio: la clave vive en el servidor, no se valida contra RD aquí.
+        // Modo servidor propio: la clave se envía al servidor (que la guarda y la usa).
         if (server.isNotEmpty()) {
             editor.value = current.copy(busy = true, error = null)
             viewModelScope.launch {
                 settings.setServerUrl(server)
-                // La clave real vive en el servidor; guardamos un marcador local para que la app
-                // no lo considere "sin configurar" (el servidor inyecta su propia clave y la ignora).
+                if (key.isNotEmpty()) {
+                    val ok = apiKeys.pushKeyToServer(current.service, key, adminPassword.orEmpty())
+                    if (!ok) {
+                        editor.value = current.copy(
+                            busy = false,
+                            error = "No se pudo enviar la clave al servidor. Revisa la URL y la contraseña admin.",
+                        )
+                        return@launch
+                    }
+                }
+                // Marcador local: la clave real vive en el servidor (el servidor inyecta la suya).
                 apiKeys.set(current.service, key.ifEmpty { "server-mode" })
                 statuses.update { it + (current.service to ServiceStatus.Ok(null)) }
                 editor.value = null
