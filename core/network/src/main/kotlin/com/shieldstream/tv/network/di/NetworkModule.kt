@@ -63,21 +63,22 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideAllDebridApi(client: OkHttpClient, json: Json): AllDebridApi =
-        buildRetrofit(ApiConfig.ALLDEBRID_BASE_URL, client, json).create(AllDebridApi::class.java)
+    fun provideAllDebridApi(client: OkHttpClient, json: Json, settings: SettingsRepository): AllDebridApi =
+        buildRetrofit(serverBaseUrl(settings, ApiConfig.ALLDEBRID_BASE_URL), client, json).create(AllDebridApi::class.java)
 
     @Provides
     @Singleton
-    fun provideRealDebridApi(client: OkHttpClient, json: Json, settings: SettingsRepository): RealDebridApi {
-        // Si el usuario ha configurado un servidor propio (debrid-proxy), la API de Real-Debrid apunta a él:
-        // el servidor guarda la clave e inyecta el token, así el móvil no la lleva.
-        val baseUrl = runBlocking { settings.serverUrl.first() }
+    fun provideRealDebridApi(client: OkHttpClient, json: Json, settings: SettingsRepository): RealDebridApi =
+        buildRetrofit(serverBaseUrl(settings, ApiConfig.REAL_DEBRID_BASE_URL), client, json).create(RealDebridApi::class.java)
+
+    /** Si el usuario ha configurado un servidor propio (debrid-proxy), la API apunta a él:
+     *  el servidor guarda la clave e inyecta el token, así el móvil no la lleva. */
+    private fun serverBaseUrl(settings: SettingsRepository, fallback: String): String =
+        runBlocking { settings.serverUrl.first() }
             ?.trim()
             ?.takeIf { it.isNotEmpty() }
             ?.let { if (it.endsWith("/")) it else "$it/" }
-            ?: ApiConfig.REAL_DEBRID_BASE_URL
-        return buildRetrofit(baseUrl, client, json).create(RealDebridApi::class.java)
-    }
+            ?: fallback
 
     @Provides
     @Singleton

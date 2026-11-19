@@ -387,7 +387,7 @@ internal fun KeyEditorDialog(
                     }
                 },
             )
-            if (editor.service == ApiService.REAL_DEBRID) {
+            if (editor.service == ApiService.REAL_DEBRID || editor.service == ApiService.ALLDEBRID) {
                 Spacer(Modifier.height(16.dp))
                 BasicTextField(
                     value = serverUrl,

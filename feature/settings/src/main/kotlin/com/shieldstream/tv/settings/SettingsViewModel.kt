@@ -305,10 +305,10 @@ class SettingsViewModel @Inject constructor(
             editor.value = current.copy(busy = true, error = null)
             viewModelScope.launch {
                 settings.setServerUrl(server)
-                if (key.isNotEmpty()) {
-                    apiKeys.set(current.service, key)
-                    statuses.update { it + (current.service to ServiceStatus.Ok(null)) }
-                }
+                // La clave real vive en el servidor; guardamos un marcador local para que la app
+                // no lo considere "sin configurar" (el servidor inyecta su propia clave y la ignora).
+                apiKeys.set(current.service, key.ifEmpty { "server-mode" })
+                statuses.update { it + (current.service to ServiceStatus.Ok(null)) }
                 editor.value = null
             }
             return
