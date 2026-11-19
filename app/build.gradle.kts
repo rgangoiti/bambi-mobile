@@ -59,6 +59,15 @@ android {
     }
 
     signingConfigs {
+        // Keystore de depuración FIJO y versionado: así todos los builds firman igual y se pueden
+        // actualizar unos sobre otros sin desinstalar (GitHub Actions genera uno nuevo en cada build).
+        getByName("debug") {
+            storeFile = rootProject.file("keystore/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+            storeType = "PKCS12"
+        }
         create("release") {
             storeFile = rootProject.file(localProps.getProperty("releaseStoreFile") ?: "keystore/butaca.keystore")
             storePassword = localProps.getProperty("releaseStorePassword") ?: "android"
