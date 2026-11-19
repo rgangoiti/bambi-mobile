@@ -85,8 +85,15 @@ fun MainScreen(
         )
     }
 
-    BackHandler(enabled = showExitConfirmation || shouldRequestExit(category != null, topBarFocused)) {
-        showExitConfirmation = !showExitConfirmation
+    // Botón atrás del sistema (móvil/gesto): categoría → inicio, pestaña → inicio, en inicio → confirmar salida.
+    // En TV el atrás del mando lo captura onBackKey; este BackHandler actúa en móvil y en el gesto de atrás.
+    BackHandler {
+        when {
+            showExitConfirmation -> showExitConfirmation = false
+            category != null -> category = null
+            tab == TopTab.SEARCH || tab == TopTab.MY_LIST || tab == TopTab.EPISODES -> tab = TopTab.HOME
+            else -> showExitConfirmation = true
+        }
     }
 
     val saveable = rememberSaveableStateHolder()
