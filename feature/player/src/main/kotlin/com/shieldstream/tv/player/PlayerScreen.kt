@@ -85,6 +85,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.shieldstream.tv.ui.component.AppIcons
 import com.shieldstream.tv.ui.component.PlaybackMediaBadges
+import com.shieldstream.tv.ui.component.TvButton
 import com.shieldstream.tv.ui.component.onBackKey
 import com.shieldstream.tv.ui.theme.AppColors
 import kotlinx.coroutines.delay
@@ -541,6 +542,14 @@ fun PlayerScreen(
         when (val s = state) {
             is PlayerUiState.Resolving -> StatusOverlay(title = title, message = s.message, loading = true)
             is PlayerUiState.Error -> StatusOverlay(title = title, message = s.message, loading = false)
+            PlayerUiState.ServerUnreachable -> StatusOverlay(
+                title = title,
+                message = localizedStringResource(StringsR.string.player_server_unreachable),
+                loading = false,
+                actionLabel = localizedStringResource(StringsR.string.player_retry),
+                onAction = viewModel::retryServerConnection,
+                hint = localizedStringResource(StringsR.string.player_server_unreachable_hint),
+            )
             PlayerUiState.Playing -> Unit
         }
     }
@@ -718,7 +727,14 @@ private fun SeekBar(playback: PlaybackState, positionMs: Long) {
 }
 
 @Composable
-private fun StatusOverlay(title: String, message: String, loading: Boolean) {
+private fun StatusOverlay(
+    title: String,
+    message: String,
+    loading: Boolean,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+    hint: String? = null,
+) {
     Column(
         modifier = Modifier.fillMaxSize().background(Color.Black).padding(48.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -744,9 +760,19 @@ private fun StatusOverlay(title: String, message: String, loading: Boolean) {
             textAlign = TextAlign.Center,
             modifier = Modifier.widthIn(max = 640.dp),
         )
+        if (actionLabel != null && onAction != null) {
+            Spacer(Modifier.height(24.dp))
+            TvButton(text = actionLabel, onClick = onAction)
+        }
         if (!loading) {
             Spacer(Modifier.height(16.dp))
-            Text(localizedStringResource(StringsR.string.player_press_back_to_pick_another_source), color = Color(0xFFB3B3B3), style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = hint ?: localizedStringResource(StringsR.string.player_press_back_to_pick_another_source),
+                color = Color(0xFFB3B3B3),
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(max = 640.dp),
+            )
         }
     }
 }

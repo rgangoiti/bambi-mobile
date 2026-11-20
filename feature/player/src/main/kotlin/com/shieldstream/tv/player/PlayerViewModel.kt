@@ -20,6 +20,7 @@ import androidx.media3.exoplayer.analytics.AnalyticsListener
 import com.shieldstream.tv.domain.ResolveState
 import com.shieldstream.tv.domain.ResolveStreamUseCase
 import com.shieldstream.tv.domain.SelectedContentHolder
+import com.shieldstream.tv.domain.ServerHealthGate
 import com.shieldstream.tv.domain.SkipSegments
 import com.shieldstream.tv.domain.SkipSegmentsRepository
 import com.shieldstream.tv.domain.ProfileRepository
@@ -51,6 +52,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -60,6 +62,9 @@ sealed interface PlayerUiState {
     data class Resolving(val message: String, val attempt: Int, val total: Int) : PlayerUiState
     data object Playing : PlayerUiState
     data class Error(val message: String) : PlayerUiState
+
+    /** Modo servidor y el servidor no responde (fuera de casa sin VPN): se bloquea la reproducción. */
+    data object ServerUnreachable : PlayerUiState
 }
 
 sealed interface SkipPromptUiState {
@@ -86,6 +91,7 @@ class PlayerViewModel @Inject constructor(
     private val playbackPolicies: PlaybackPolicyProvider,
     private val resolveStreamUseCase: ResolveStreamUseCase,
     private val settings: SettingsRepository,
+    private val serverHealth: ServerHealthGate,
     profiles: ProfileRepository,
     private val holder: SelectedContentHolder,
     private val watchProgress: WatchProgressRepository,
@@ -188,6 +194,7 @@ class PlayerViewModel @Inject constructor(
     private var playbackVisible = true
     private var playerGeneration = 0L
     private var playerCreationJob: Job? = null
+    private var gateJob: Job? = null
     private var earlyPreparationPending: ExoPlayer? = null
     private var trackSelectionToRestore: TrackSelectionParameters? = null
     private var resolvedUrl: String? = null
@@ -246,8 +253,36 @@ class PlayerViewModel @Inject constructor(
             _uiState.value = PlayerUiState.Error(texts.get(StringsR.string.player_no_source_selected))
             return
         }
-        loadSegments()
-        playFrom(0)
+        gateThenPlay()
+    }
+
+    /** El usuario pulsa "Reintentar" en el aviso de servidor inalcanzable: se repite el chequeo. */
+    fun retryServerConnection() {
+        if (_uiState.value !is PlayerUiState.ServerUnreachable) return
+        _uiState.value = PlayerUiState.Resolving(texts.get(StringsR.string.player_checking_server), 1, 1)
+        gateThenPlay()
+    }
+
+    /**
+     * Candado de red: en modo servidor (serverUrl no vacío) se comprueba antes de resolver que el
+     * servidor responde a /health. En modo directo no se comprueba nada.
+     */
+    private fun gateThenPlay() {
+        gateJob?.cancel()
+        gateJob = viewModelScope.launch {
+            val server = settings.serverUrl.firstOrNull()?.trim()?.takeIf { it.isNotEmpty() }
+            if (server != null) {
+                _uiState.value = PlayerUiState.Resolving(texts.get(StringsR.string.player_checking_server), 1, 1)
+                val reachable = runCatching { serverHealth.reachable(server) }.getOrDefault(false)
+                if (!reachable) {
+                    Log.i("PlayerVM", "Servidor inalcanzable ($server): reproducción bloqueada")
+                    _uiState.value = PlayerUiState.ServerUnreachable
+                    return@launch
+                }
+            }
+            loadSegments()
+            playFrom(0)
+        }
     }
 
     private fun loadSegments() {

@@ -13,6 +13,7 @@ import com.shieldstream.tv.domain.ProfileRepository
 import com.shieldstream.tv.domain.ResolveState
 import com.shieldstream.tv.domain.ResolveStreamUseCase
 import com.shieldstream.tv.domain.SelectedContentHolder
+import com.shieldstream.tv.domain.ServerHealthGate
 import com.shieldstream.tv.domain.SettingsRepository
 import com.shieldstream.tv.domain.SkipSegmentsRepository
 import com.shieldstream.tv.domain.SubtitleRepository
@@ -33,6 +34,7 @@ import com.shieldstream.tv.model.SubtitleAppearance
 import com.shieldstream.tv.model.SubtitleColor
 import com.shieldstream.tv.model.SubtitlePreference
 import com.shieldstream.tv.strings.Texts
+import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -244,11 +246,32 @@ class PlayerViewModelTest {
         coVerify(exactly = 1) { fixture.settings.setSubtitleAppearance(expected) }
     }
 
+    @Test
+    fun `server mode blocks playback when the server does not answer`() = runBlocking {
+        val players = FakePlayers(Tracks.EMPTY)
+        val fixture = fixture(
+            players = players,
+            bufferSecondsFlow = flowOf(40),
+            subtitlePreference = SubtitlePreference.OFF,
+            serverUrl = "http://192.168.1.215:8201",
+            serverReachable = false,
+        )
+
+        fixture.viewModel.start()
+        yield()
+
+        assertEquals(PlayerUiState.ServerUnreachable, fixture.viewModel.uiState.value)
+        assertNull(fixture.viewModel.player.value)
+        fixture.viewModel.onStop()
+    }
+
     private fun fixture(
         players: FakePlayers,
         bufferSecondsFlow: Flow<Int>,
         subtitlePreference: SubtitlePreference,
         next: NextEpisode? = null,
+        serverUrl: String? = null,
+        serverReachable: Boolean = true,
     ): Fixture {
         val policy = PlaybackPolicy.automatic(512L * 1024 * 1024)
         val media3Factory = mockk<Media3Factory>()
@@ -269,6 +292,10 @@ class PlayerViewModelTest {
             every { autoNextEpisode } returns flowOf(true)
             every { tracksPanelCard } returns flowOf(false)
             every { autoSkipIntro } returns flowOf(false)
+            every { this@mockk.serverUrl } returns flowOf(serverUrl)
+        }
+        val serverHealth = mockk<ServerHealthGate>(relaxed = true) {
+            coEvery { reachable(any()) } returns serverReachable
         }
         val profile = Profile(
             id = "test",
@@ -314,6 +341,7 @@ class PlayerViewModelTest {
                 playbackPolicies = playbackPolicies,
                 resolveStreamUseCase = resolve,
                 settings = settings,
+                serverHealth = serverHealth,
                 profiles = profiles,
                 holder = holder,
                 watchProgress = watchProgress,

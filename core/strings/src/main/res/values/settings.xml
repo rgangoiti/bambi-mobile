@@ -287,4 +287,21 @@
     <string name="photo_page_sending">Sending…</string>
     <string name="photo_page_done">Done! It\'s on the TV now.</string>
     <string name="photo_page_error">Couldn\'t send it. Please try again.</string>
+    <string name="settings_export_configuration">Export configuration</string>
+    <string name="settings_export_configuration_body">Server, debrid service and (in direct mode) your key, as a QR code and JSON text.</string>
+    <string name="settings_export_configuration_hint">Scan it on another device or copy the text. With your own server the key never leaves the server, so it is not included.</string>
+    <string name="settings_import_configuration">Import configuration</string>
+    <string name="settings_import_configuration_body">Paste the JSON from another device to restore the server, the debrid service and the key.</string>
+    <string name="settings_import_configuration_hint">Paste the configuration JSON (or copy it from the clipboard) and press Import. Nothing is changed if the text is not valid.</string>
+    <string name="settings_copy">Copy</string>
+    <string name="settings_copied">Copied</string>
+    <string name="settings_share">Share</string>
+    <string name="settings_paste">Paste</string>
+    <string name="settings_import_action">Import</string>
+    <string name="settings_import_placeholder">Paste the configuration JSON here…</string>
+    <string name="settings_import_invalid">That text is not a valid configuration JSON.</string>
+    <string name="settings_import_done">Configuration imported.</string>
+    <string name="settings_import_done_restart">Configuration imported. Restart the app to use the new server.</string>
+    <string name="settings_restart_now">Restart now</string>
+    <string name="settings_copy_from_another_device">Move to another device</string>
 </resources>

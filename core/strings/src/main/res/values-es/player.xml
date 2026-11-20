@@ -101,4 +101,8 @@
     <string name="player_video_fit_original">Original (con bandas negras)</string>
     <string name="player_video_fit_zoom">Ampliar · sin bandas, recorta los lados</string>
     <string name="player_video_fit_stretch">Estirar · sin bandas, deforma la imagen</string>
+    <string name="player_checking_server">Comprobando el servidor…</string>
+    <string name="player_server_unreachable">No puedes conectar con el servidor. Si estás fuera de casa, conecta la VPN.</string>
+    <string name="player_server_unreachable_hint">La app necesita tu servidor para reproducir. Conecta la VPN y pulsa Reintentar.</string>
+    <string name="player_retry">Reintentar</string>
 </resources>

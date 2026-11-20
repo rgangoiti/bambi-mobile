@@ -30,6 +30,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -451,5 +452,76 @@ class SettingsViewModel @Inject constructor(
         is KeyCheck.Invalid -> ServiceStatus.Bad(message)
     }
 
+    // --- Exportar / importar configuración (QR y JSON) -----------------------------------------
+
+    private val _export = MutableStateFlow<ExportUi?>(null)
+    val exportSheet: StateFlow<ExportUi?> = _export.asStateFlow()
+
+    private val _import = MutableStateFlow<ImportUi?>(null)
+    val importSheet: StateFlow<ImportUi?> = _import.asStateFlow()
+
+    /** Prepara el JSON de exportación (servidor, debrid y clave local si estamos en modo directo). */
+    fun openExport() {
+        viewModelScope.launch {
+            val config = ConfigTransfer.snapshot(
+                serverUrl = settings.serverUrl.first(),
+                debridService = settings.debridService.first().name,
+                token = settings.token.first(),
+            )
+            _export.value = ExportUi(ConfigTransfer.toJson(config))
+        }
+    }
+
+    fun closeExport() {
+        _export.value = null
+    }
+
+    fun openImport() {
+        _import.value = ImportUi()
+    }
+
+    fun closeImport() {
+        _import.value = null
+    }
+
+    /**
+     * Restaura lo que traiga el JSON pegado, con los setters de siempre. Tolerante: si el texto no
+     * es válido se avisa y no se toca nada.
+     */
+    fun applyImportedConfig(text: String) {
+        val config = ConfigTransfer.parse(text)
+        if (config == null) {
+            _import.value = ImportUi(error = texts.get(StringsR.string.settings_import_invalid))
+            return
+        }
+        viewModelScope.launch {
+            val server = config.serverUrl
+            if (server != null) {
+                // Modo servidor: la clave vive en el servidor, así que no se guarda ninguna local.
+                settings.setServerUrl(server)
+                settings.setToken(null)
+            } else if (config.token != null) {
+                // Modo directo: la clave del debrid viene en el JSON.
+                settings.setServerUrl(null)
+                settings.setToken(config.token)
+            }
+            config.debridService
+                ?.let { name -> DebridService.entries.firstOrNull { it.name.equals(name, ignoreCase = true) } }
+                ?.let { settings.setDebridService(it) }
+            _import.value = ImportUi(applied = true, restartNeeded = config.serverUrl != null)
+        }
+    }
+
     private fun mask(key: String): String = if (key.length <= 4) "••••" else "••••••••  " + key.takeLast(4)
 }
+
+/** Configuración serializada y lista para enseñar como QR / texto. */
+data class ExportUi(val json: String)
+
+/** Estado del diálogo de importación. */
+data class ImportUi(
+    val error: String? = null,
+    val applied: Boolean = false,
+    /** Cambiar de servidor pide reiniciar: las APIs ya se construyeron con la URL anterior. */
+    val restartNeeded: Boolean = false,
+)

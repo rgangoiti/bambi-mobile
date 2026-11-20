@@ -67,11 +67,13 @@ fun SettingsScreen(
     val pendingRequestCount by viewModel.pendingRequestCount.collectAsStateWithLifecycle()
     val subtitleAppearance by viewModel.subtitleAppearance.collectAsStateWithLifecycle()
     val matchContentFrameRate by viewModel.matchContentFrameRate.collectAsStateWithLifecycle()
+    val exportSheet by viewModel.exportSheet.collectAsStateWithLifecycle()
+    val importSheet by viewModel.importSheet.collectAsStateWithLifecycle()
     Box(
         Modifier
             .fillMaxSize()
             .background(SettingsBackground)
-            .onBackKey(enabled = ready?.editor == null) { onBack() },
+            .onBackKey(enabled = ready?.editor == null && exportSheet == null && importSheet == null) { onBack() },
     ) {
         when (val s = state) {
             SettingsUiState.Loading -> Unit
@@ -93,6 +95,8 @@ fun SettingsScreen(
                     onOpenSetup = onOpenSetup,
                     onOpenPhoneConfig = onOpenPhoneConfig,
                     onOpenRequests = onOpenRequests,
+                    onExport = viewModel::openExport,
+                    onImport = viewModel::openImport,
                     showRequests = isAdmin,
                     pendingRequestCount = pendingRequestCount,
                     onLanguage = { language -> viewModel.setLanguage(language) { restartApp(context) } },
@@ -112,6 +116,16 @@ fun SettingsScreen(
                         onRemove = viewModel::removeKey,
                         onClose = viewModel::closeEditor,
                         onAllDebridConnected = viewModel::completeAllDebridConnect,
+                    )
+                }
+                exportSheet?.let { sheet ->
+                    ExportConfigDialog(json = sheet.json, onDismiss = viewModel::closeExport)
+                }
+                importSheet?.let { sheet ->
+                    ImportConfigDialog(
+                        state = sheet,
+                        onApply = viewModel::applyImportedConfig,
+                        onDismiss = viewModel::closeImport,
                     )
                 }
             }
@@ -135,6 +149,8 @@ private fun SettingsList(
     onOpenSetup: () -> Unit,
     onOpenPhoneConfig: () -> Unit,
     onOpenRequests: () -> Unit,
+    onExport: () -> Unit,
+    onImport: () -> Unit,
     showRequests: Boolean,
     pendingRequestCount: Int,
     onLanguage: (AppLanguage) -> Unit,
@@ -367,6 +383,9 @@ private fun SettingsList(
             }
             item { PhoneConfigCard(onClick = onOpenPhoneConfig) }
             item { SetupGuideCard(onClick = onOpenSetup) }
+            item { SectionTitle(localizedStringResource(StringsR.string.settings_copy_from_another_device)) }
+            item { ExportConfigCard(onClick = onExport) }
+            item { ImportConfigCard(onClick = onImport) }
         }
     }
 }

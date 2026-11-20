@@ -1,7 +1,9 @@
 package com.shieldstream.tv.network.di
 
+import com.shieldstream.tv.domain.ServerHealthGate
 import com.shieldstream.tv.domain.SettingsRepository
 import com.shieldstream.tv.model.Lang
+import com.shieldstream.tv.network.OkHttpServerHealthGate
 import com.shieldstream.tv.network.api.AllDebridApi
 import com.shieldstream.tv.network.api.RealDebridApi
 import com.shieldstream.tv.network.api.TmdbApi
@@ -60,6 +62,10 @@ object NetworkModule {
             }
         }
         .build()
+
+    @Provides
+    @Singleton
+    fun provideServerHealthGate(gate: OkHttpServerHealthGate): ServerHealthGate = gate
 
     @Provides
     @Singleton

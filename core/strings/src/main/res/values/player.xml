@@ -101,4 +101,8 @@
     <string name="player_video_fit_original">Original (with black bars)</string>
     <string name="player_video_fit_zoom">Zoom · no bars, crops the sides</string>
     <string name="player_video_fit_stretch">Stretch · no bars, distorts the picture</string>
+    <string name="player_checking_server">Checking the server…</string>
+    <string name="player_server_unreachable">Can\'t reach the server. If you\'re away from home, turn on the VPN.</string>
+    <string name="player_server_unreachable_hint">The app needs your server to play. Turn on the VPN and press Retry.</string>
+    <string name="player_retry">Retry</string>
 </resources>

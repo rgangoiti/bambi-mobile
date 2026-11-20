@@ -287,4 +287,21 @@
     <string name="photo_page_sending">Enviando…</string>
     <string name="photo_page_done">¡Listo! Ya está en la tele.</string>
     <string name="photo_page_error">No se pudo enviar. Inténtalo de nuevo.</string>
+    <string name="settings_export_configuration">Exportar configuración</string>
+    <string name="settings_export_configuration_body">Servidor, servicio debrid y (en modo directo) tu clave, como código QR y texto JSON.</string>
+    <string name="settings_export_configuration_hint">Escanea el código en otro dispositivo o copia el texto. Con servidor propio la clave no sale del servidor, así que no se incluye.</string>
+    <string name="settings_import_configuration">Importar configuración</string>
+    <string name="settings_import_configuration_body">Pega el JSON de otro dispositivo para restaurar el servidor, el servicio debrid y la clave.</string>
+    <string name="settings_import_configuration_hint">Pega el JSON de configuración (o cópialo del portapapeles) y pulsa Importar. Si el texto no es válido no se cambia nada.</string>
+    <string name="settings_copy">Copiar</string>
+    <string name="settings_copied">Copiado</string>
+    <string name="settings_share">Compartir</string>
+    <string name="settings_paste">Pegar</string>
+    <string name="settings_import_action">Importar</string>
+    <string name="settings_import_placeholder">Pega aquí el JSON de configuración…</string>
+    <string name="settings_import_invalid">Ese texto no es un JSON de configuración válido.</string>
+    <string name="settings_import_done">Configuración importada.</string>
+    <string name="settings_import_done_restart">Configuración importada. Reinicia la app para usar el nuevo servidor.</string>
+    <string name="settings_restart_now">Reiniciar ahora</string>
+    <string name="settings_copy_from_another_device">Pasar a otro dispositivo</string>
 </resources>
